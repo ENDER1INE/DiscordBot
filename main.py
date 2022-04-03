@@ -14,38 +14,38 @@ async def hello(ctx):
 
 
 @bot.command()
-async def weather(ctx, city):
-    key = "4404863c7b41019dcdccb79c8d750ac8"
-    url = f"http://api.openweathermap.org/data/2.5/find?q={city}&type=like&APPID={key}"
-    response = requests.get(url).json()
-
-    response = response["list"][0]
-    weather = \
-        {
-            "Скорость ветра": f"{response['wind']['speed']} м/с",
-            "Дождь": response["rain"],
-            "Облачность": response["clouds"],
-            "Снег": response["snow"],
-            "Минимальная температура": int(response["main"]["temp_min"]) - 273,
-            "Максимальная температура": int(response["main"]["temp_max"]) - 273
-        }
-
-    color = 0xFF6500
-    embed = discord.Embed(
-        title=f"Погода в городе {city}",
-        color=color
-    )
-    print(weather)
-    for key in weather:
-        print(key)
-        embed.add_field(
-            name=key,
-            value=str(weather[key]),
-            inline=False
+async def weather(ctx, *city):
+    try:
+        city = ' '.join(city)
+        key = "4404863c7b41019dcdccb79c8d750ac8"
+        url = f"http://api.openweathermap.org/data/2.5/find?q={city}&type=like&APPID={key}"
+        response = requests.get(url).json()["list"][0]
+        rain = "No rain observed " if not response["rain"] else "Chance of rain"
+        snow = "No snowfall observed " if not response["snow"] else "Snowfall possible "
+        weather = \
+            {
+                "Скорость ветра": f"{response['wind']['speed']} м/с",
+                "Дождь": rain,
+                "Снег": snow,
+                "Минимальная температура": int(response["main"]["temp_min"]) - 273,
+                "Максимальная температура": int(response["main"]["temp_max"]) - 273
+            }
+        color = 0x00FFFF
+        embed = discord.Embed(
+            title=f"Погода в городе {city}",
+            description=f"{response['weather'][0]['description']}",
+            color=color
         )
-
-    print(123)
-    await ctx.send(embed=embed)
+        for key in weather:
+            embed.add_field(
+                name=key,
+                value=str(weather[key]),
+                inline=False
+            )
+        await ctx.send(embed=embed)
+    except Exception:
+        await ctx.send(embed=discord.Embed(color=0xFF2B2B, title="Произошла непредвиденная ошибка, возможного данного"
+                                                                 " города не существует)"))
 
 
 bot.run(settings['token'])
