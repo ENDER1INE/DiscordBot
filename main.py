@@ -2,8 +2,11 @@ import discord
 from discord.ext import commands
 from config import settings
 import requests
+import json
+from googletrans import Translator
+import emoji
 
-
+translator = Translator()
 bot = commands.Bot(command_prefix=settings['prefix'], help_command=None)
 
 
@@ -55,5 +58,59 @@ async def weather(ctx, *city):
         await ctx.send(embed=discord.Embed(color=0xFF2B2B, title="Произошла непредвиденная ошибка, возможного данного"
                                                                  " города не существует)"))
 
+@bot.command()
+async def pic(ctx, animal):
+    responce = requests.get(f'https://some-random-api.ml/img/{animal}')
+    json_data = json.loads(responce.text)
+    embed = discord.Embed(color=0xff9900)
+    embed.set_image(url=json_data['link'])
+    await ctx.send(embed=embed)
+
+
+@bot.command()
+async def fact(ctx, animal):
+    responce = requests.get(f'https://some-random-api.ml/facts/{animal}')
+    json_data = json.loads(responce.text)
+    responce_2 = requests.get(f'https://some-random-api.ml/animal/{animal}')
+    json_data_2 = json.loads(responce_2.text)
+    result = translator.translate(json_data['fact'], dest='ru', src='en')
+    embed_ru = discord.Embed(color=0xff9900, title=result.text)
+    embed_en = discord.Embed(color=0xff9900, title=json_data['fact'])
+    embed_en.set_image(url=json_data_2['image'])
+    await ctx.send(embed=embed_en)
+    await ctx.send(embed=embed_ru)
+
+
+@bot.command()
+async def meme(ctx):
+    responce = requests.get('https://some-random-api.ml/meme')
+    json_data = json.loads(responce.text)
+    embed = discord.Embed(color=0xff9900)
+    embed.set_image(url=json_data['image'])
+    await ctx.send(embed=embed)
+
+
+@bot.command()
+async def joke(ctx):
+    responce = requests.get('https://some-random-api.ml/joke')
+    json_data = json.loads(responce.text)
+    result = translator.translate(json_data['joke'], dest='ru', src='en')
+    embed_ru = discord.Embed(color=0xff9900, title=result.text)
+    embed_en = discord.Embed(color=0xff9900, title=json_data['joke'])
+    await ctx.send(embed=embed_en)
+    await ctx.send(embed=embed_ru)
+
+@bot.command()
+async def help(ctx):
+    t = ':hear-no-evil_monkey:'
+    commands = [f'Действия:',
+                f'  {emoji.emojize(t)}  weather город - вывод погоды в  определенном городе',
+                f'  {emoji.emojize(t)}  pic животное - фото животного',
+                f'  {emoji.emojize(t)}  fact животное - факт о животном',
+                f'  {emoji.emojize(t)}  meme - мем',
+                f'  {emoji.emojize(t)}  joke - шутка']
+    embed = discord.Embed(color=0xff9900, title=f'Действия')
+    embed.add_field(name='<<commands>>', value='\n'.join(commands), inline=True)
+    await ctx.send(embed=embed)
 
 bot.run(settings['token'])
