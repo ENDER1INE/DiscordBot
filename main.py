@@ -6,20 +6,38 @@ import json
 from googletrans import Translator
 import emoji
 
+
 translator = Translator()
 bot = commands.Bot(command_prefix=settings['prefix'], help_command=None)
+jokes = {}
+facts = {}
+cities = {}
+city_list = []
+facts_list = []
+
 
 
 @bot.command()
 async def hello(ctx):
     author = ctx.message.author
     await ctx.send(f"Привет {author.mention}")
+    await help(ctx)
 
 
 @bot.command()
 async def weather(ctx, *city):
     try:
+        author = ctx.message.author
         city = ' '.join(city)
+        if author.id not in cities.keys():
+            city_list.append(city)
+            cities[author.id] = city_list
+        elif city in cities.get(author.id):
+            await ctx.send(embed=discord.Embed(color=0xFF2B2B, title=f"Вы уже запрашивали погоду в городе {city}"))
+        else:
+            city_id = cities.get(author.id)
+            city_id.append(city)
+            cities[author.id] = city_id
         key = "4404863c7b41019dcdccb79c8d750ac8"
         url = f"http://api.openweathermap.org/data/2.5/find?q={city}&type=like&APPID={key}"
         response = requests.get(url).json()["list"][0]
@@ -58,6 +76,7 @@ async def weather(ctx, *city):
         await ctx.send(embed=discord.Embed(color=0xFF2B2B, title="Произошла непредвиденная ошибка, возможного данного"
                                                                  " города не существует)"))
 
+
 @bot.command()
 async def pic(ctx, animal):
     responce = requests.get(f'https://some-random-api.ml/img/{animal}')
@@ -71,6 +90,12 @@ async def pic(ctx, animal):
 async def fact(ctx, animal):
     responce = requests.get(f'https://some-random-api.ml/facts/{animal}')
     json_data = json.loads(responce.text)
+    if json_data['fact'] in facts:
+        await ctx.send(embed=discord.Embed(color=0xFF2B2B, title="Упс.. кажется этот факт вы уже слышали. Сейчас подберем новый!"))
+        responce = requests.get(f'https://some-random-api.ml/facts/{animal}')
+        json_data = json.loads(responce.text)
+    else:
+        facts.append(json_data['fact'])
     responce_2 = requests.get(f'https://some-random-api.ml/animal/{animal}')
     json_data_2 = json.loads(responce_2.text)
     result = translator.translate(json_data['fact'], dest='ru', src='en')
@@ -94,11 +119,18 @@ async def meme(ctx):
 async def joke(ctx):
     responce = requests.get('https://some-random-api.ml/joke')
     json_data = json.loads(responce.text)
+    if json_data['joke'] in jokes:
+        await ctx.send(embed=discord.Embed(color=0xFF2B2B, title="Упс.. кажется эту шутку вы уже слышали. Сейчас подберем новую!"))
+        responce = requests.get('https://some-random-api.ml/joke')
+        json_data = json.loads(responce.text)
+    else:
+        jokes.append(json_data['joke'])
     result = translator.translate(json_data['joke'], dest='ru', src='en')
     embed_ru = discord.Embed(color=0xff9900, title=result.text)
     embed_en = discord.Embed(color=0xff9900, title=json_data['joke'])
     await ctx.send(embed=embed_en)
     await ctx.send(embed=embed_ru)
+
 
 @bot.command()
 async def help(ctx):
