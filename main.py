@@ -9,12 +9,51 @@ import emoji
 translator = Translator()
 bot = commands.Bot(command_prefix=settings['prefix'], help_command=None)
 
+last_help_message_id = None
+
+
+@bot.command()
+async def last(ctx):
+    print(last_help_message_id)
+
+
+@bot.command()
+async def help(ctx):
+    global last_help_message_id
+    t = ':white_check_mark:'
+    commands = [f'Действия:',
+                f'  {emoji.emojize(t)}  weather город - вывод погоды в  определенном городе',
+                f'  {emoji.emojize(t)}  pic животное - фото животного',
+                f'  {emoji.emojize(t)}  fact животное - факт о животном',
+                f'  {emoji.emojize(t)}  meme - мем',
+                f'  {emoji.emojize(t)}  joke - шутка']
+    embed = discord.Embed(color=0xff9900, title=f'Действия')
+    embed.add_field(name='<<commands>>', value='\n'.join(commands), inline=True)
+    message_id = await ctx.send(embed=embed)
+    last_help_message_id = message_id.id
+
 
 @bot.command()
 async def hello(ctx):
     author = ctx.message.author
-    await ctx.send(f"Привет {author.mention}")
+    hello_message = await ctx.send(f"Привет {author.mention}🤜")
 
+
+@bot.event
+async def on_raw_reaction_add(payload):
+    message_id = payload.message_id
+    guild_id = payload.guild_id
+    guild = discord.utils.find(lambda x: x.id == guild_id, bot.guilds)
+    channel = bot.get_channel(payload.channel_id)
+    print(channel)
+    if message_id == last_help_message_id:
+        if payload.emoji.name == '👋':
+            await channel.send("Присаживайся странник, отдохни")
+
+
+@bot.event
+async def on_raw_reaction_remove(payload):
+    print("reaction_removed")
 
 @bot.command()
 async def weather(ctx, *city):
@@ -58,6 +97,7 @@ async def weather(ctx, *city):
         await ctx.send(embed=discord.Embed(color=0xFF2B2B, title="Произошла непредвиденная ошибка, возможного данного"
                                                                  " города не существует)"))
 
+
 @bot.command()
 async def pic(ctx, animal):
     responce = requests.get(f'https://some-random-api.ml/img/{animal}')
@@ -99,18 +139,5 @@ async def joke(ctx):
     embed_en = discord.Embed(color=0xff9900, title=json_data['joke'])
     await ctx.send(embed=embed_en)
     await ctx.send(embed=embed_ru)
-
-@bot.command()
-async def help(ctx):
-    t = ':hear-no-evil_monkey:'
-    commands = [f'Действия:',
-                f'  {emoji.emojize(t)}  weather город - вывод погоды в  определенном городе',
-                f'  {emoji.emojize(t)}  pic животное - фото животного',
-                f'  {emoji.emojize(t)}  fact животное - факт о животном',
-                f'  {emoji.emojize(t)}  meme - мем',
-                f'  {emoji.emojize(t)}  joke - шутка']
-    embed = discord.Embed(color=0xff9900, title=f'Действия')
-    embed.add_field(name='<<commands>>', value='\n'.join(commands), inline=True)
-    await ctx.send(embed=embed)
 
 bot.run(settings['token'])
