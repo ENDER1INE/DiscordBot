@@ -10,6 +10,7 @@ translator = Translator()
 bot = commands.Bot(command_prefix=settings['prefix'], help_command=None)
 
 last_help_message_id = None
+lasT_channel_if = None
 
 
 @bot.command()
@@ -19,8 +20,7 @@ async def last(ctx):
 
 @bot.command()
 async def help(ctx):
-    global last_help_message_id
-    t = ':white_check_mark:'
+    t = '✅'
     commands = [f'Действия:',
                 f'  {emoji.emojize(t)}  weather город - вывод погоды в  определенном городе',
                 f'  {emoji.emojize(t)}  pic животное - фото животного',
@@ -29,29 +29,40 @@ async def help(ctx):
                 f'  {emoji.emojize(t)}  joke - шутка']
     embed = discord.Embed(color=0xff9900, title=f'Действия')
     embed.add_field(name='<<commands>>', value='\n'.join(commands), inline=True)
-    message_id = await ctx.send(embed=embed)
-    last_help_message_id = message_id.id
+    print(last_channel_id)
 
 
 @bot.command()
 async def hello(ctx):
-    author = ctx.message.author
-    hello_message = await ctx.send(f"Привет {author.mention}🤜")
+    global last_help_message_id, last_channel_id, last_author
+    last_author = ctx.message.author
+    guild = bot.get_guild(922501298111250493)
+    people_role = guild.get_role(963432221421764618)
+    embed = discord.Embed(color=0xFF3300, title=f'-------Приветствуем вас на сервере-------\n'
+                                                f'Пожалуйста подтвердите свою личность.\n'
+                                                f'\n'
+                                                f'{bot.get_emoji(964198996295942144)} - согласен\n'
+                                                f'{bot.get_emoji(964198996291751986)} - отказываюсь')
+    message_id = await ctx.send(embed=embed)
+    last_help_message_id = message_id.id
+    last_channel_id = message_id.channel.id
 
 
 @bot.event
 async def on_raw_reaction_add(payload):
     message_id = payload.message_id
-    guild_id = payload.guild_id
-    guild = discord.utils.find(lambda x: x.id == guild_id, bot.guilds)
     channel = bot.get_channel(payload.channel_id)
-    print(channel)
+    guild = bot.get_guild(922501298111250493)
+    people_role = guild.get_role(963432221421764618)
+    meh_role = guild.get_role(964515540456575037)
     if message_id == last_help_message_id:
-        if payload.emoji.name == '👋':
-            await channel.send("Присаживайся странник, отдохни")
+        if payload.emoji.name == 'ALTCHECK':
+            await last_author.add_roles(people_role)
+        elif payload.emoji.name == 'MinecraftNo':
+            await last_author.add_roles(meh_role)
 
 
-@bot.event
+@bot.event 
 async def on_raw_reaction_remove(payload):
     print("reaction_removed")
 
