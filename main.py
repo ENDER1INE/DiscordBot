@@ -12,8 +12,13 @@ bot = commands.Bot(command_prefix=settings['prefix'], help_command=None)
 jokes = {}
 facts = {}
 cities = {}
+pictures = {}
+memes = {}
 city_list = []
-facts_list = []
+fact_list = []
+joke_list = []
+pic_list = []
+mem_list = []
 
 
 
@@ -79,57 +84,122 @@ async def weather(ctx, *city):
 
 @bot.command()
 async def pic(ctx, animal):
-    responce = requests.get(f'https://some-random-api.ml/img/{animal}')
-    json_data = json.loads(responce.text)
-    embed = discord.Embed(color=0xff9900)
-    embed.set_image(url=json_data['link'])
-    await ctx.send(embed=embed)
+    try:
+        author = ctx.message.author
+        responce = requests.get(f'https://some-random-api.ml/img/{animal}')
+        json_data = json.loads(responce.text)
+        if author.id not in pictures.keys():
+            pic_list.append(json_data['link'])
+            pictures[author.id] = pic_list
+        elif json_data['link'] in pictures.get(author.id):
+            await ctx.send(embed=discord.Embed(color=0xFF2B2B, title=f"Кажется это фото вы уже видели, сейчас подберем другое"))
+            responce = requests.get(f'https://some-random-api.ml/img/{animal}')
+            json_data = json.loads(responce.text)
+        else:
+            pic_id = pictures.get(author.id)
+            pic_id.append(json_data['link'])
+            pictures[author.id] = pic_id
+        embed = discord.Embed(color=0xff9900)
+        embed.set_image(url=json_data['link'])
+        await ctx.send(embed=embed)
+    except Exception:
+        await ctx.send(embed=discord.Embed(color=0xFF2B2B, title="Произошла непредвиденная ошибка, возможного данного"
+                                                                 " животного не существует)"))
+
 
 
 @bot.command()
 async def fact(ctx, animal):
-    responce = requests.get(f'https://some-random-api.ml/facts/{animal}')
-    json_data = json.loads(responce.text)
-    if json_data['fact'] in facts:
-        await ctx.send(embed=discord.Embed(color=0xFF2B2B, title="Упс.. кажется этот факт вы уже слышали. Сейчас подберем новый!"))
-        responce = requests.get(f'https://some-random-api.ml/facts/{animal}')
+    try:
+        author = ctx.message.author
+        responce = requests.get(f'https://some-random-api.ml/animal/{animal}')
         json_data = json.loads(responce.text)
-    else:
-        facts.append(json_data['fact'])
-    responce_2 = requests.get(f'https://some-random-api.ml/animal/{animal}')
-    json_data_2 = json.loads(responce_2.text)
-    result = translator.translate(json_data['fact'], dest='ru', src='en')
-    embed_ru = discord.Embed(color=0xff9900, title=result.text)
-    embed_en = discord.Embed(color=0xff9900, title=json_data['fact'])
-    embed_en.set_image(url=json_data_2['image'])
-    await ctx.send(embed=embed_en)
-    await ctx.send(embed=embed_ru)
-
+        if author.id not in facts.keys():
+            fact_list.append(json_data['fact'])
+            facts[author.id] = fact_list
+        elif json_data['fact'] in facts.get(author.id):
+            await ctx.send(
+                embed=discord.Embed(color=0xFF2B2B, title=f"Кажется этот факт вы уже слышали, сейчас подберем другой"))
+            responce = requests.get(f'https://some-random-api.ml/facts/{animal}')
+            json_data = json.loads(responce.text)
+        else:
+            fact_id = facts.get(author.id)
+            fact_id.append(json_data['fact'])
+            facts[author.id] = fact_id
+        responce_2 = requests.get(f'https://some-random-api.ml/animal/{animal}')
+        json_data_2 = json.loads(responce_2.text)
+        if author.id not in pictures.keys():
+            pic_list.append(json_data['image'])
+            pictures[author.id] = pic_list
+        elif json_data['image'] in pictures.get(author.id):
+            await ctx.send(
+                embed=discord.Embed(color=0xFF2B2B, title=f"Кажется это фото вы уже видели, сейчас подберем другое"))
+            responce_2 = requests.get(f'https://some-random-api.ml/animal/{animal}')
+            json_data_2 = json.loads(responce_2.text)
+        else:
+            pic_id = pictures.get(author.id)
+            pic_id.append(json_data['image'])
+            pictures[author.id] = pic_id
+        result = translator.translate(json_data['fact'], dest='ru', src='en')
+        embed_ru = discord.Embed(color=0xff9900, title=result.text)
+        embed_en = discord.Embed(color=0xff9900, title=json_data['fact'])
+        embed_en.set_image(url=json_data_2['image'])
+        await ctx.send(embed=embed_en)
+        await ctx.send(embed=embed_ru)
+    except Exception:
+        await ctx.send(embed=discord.Embed(color=0xFF2B2B, title="Произошла непредвиденная ошибка, возможного данного"
+                                                                 " животного не существует)"))
 
 @bot.command()
 async def meme(ctx):
-    responce = requests.get('https://some-random-api.ml/meme')
-    json_data = json.loads(responce.text)
-    embed = discord.Embed(color=0xff9900)
-    embed.set_image(url=json_data['image'])
-    await ctx.send(embed=embed)
+    try:
+        author = ctx.message.author
+        responce = requests.get('https://some-random-api.ml/meme')
+        json_data = json.loads(responce.text)
+        if author.id not in memes.keys():
+            mem_list.append(json_data['image'])
+            memes[author.id] = mem_list
+        elif json_data['image'] in memes.get(author.id):
+            await ctx.send(
+                embed=discord.Embed(color=0xFF2B2B, title=f"Кажется этот мем вы уже видели, сейчас подберем другой"))
+            responce = requests.get(f'https://some-random-api.ml/meme')
+            json_data = json.loads(responce.text)
+        else:
+            mem_id = memes.get(author.id)
+            mem_id.append(json_data['image'])
+            pictures[author.id] = mem_id
+        embed = discord.Embed(color=0xff9900)
+        embed.set_image(url=json_data['image'])
+        await ctx.send(embed=embed)
+    except Exception:
+        await ctx.send(embed=discord.Embed(color=0xFF2B2B, title="Произошла непредвиденная ошибка"))
 
 
 @bot.command()
 async def joke(ctx):
-    responce = requests.get('https://some-random-api.ml/joke')
-    json_data = json.loads(responce.text)
-    if json_data['joke'] in jokes:
-        await ctx.send(embed=discord.Embed(color=0xFF2B2B, title="Упс.. кажется эту шутку вы уже слышали. Сейчас подберем новую!"))
+    try:
+        author = ctx.message.author
         responce = requests.get('https://some-random-api.ml/joke')
         json_data = json.loads(responce.text)
-    else:
-        jokes.append(json_data['joke'])
-    result = translator.translate(json_data['joke'], dest='ru', src='en')
-    embed_ru = discord.Embed(color=0xff9900, title=result.text)
-    embed_en = discord.Embed(color=0xff9900, title=json_data['joke'])
-    await ctx.send(embed=embed_en)
-    await ctx.send(embed=embed_ru)
+        if author.id not in jokes.keys():
+            joke_list.append(json_data['joke'])
+            jokes[author.id] = joke_list
+        elif json_data['joke'] in jokes.get(author.id):
+            await ctx.send(
+                embed=discord.Embed(color=0xFF2B2B, title=f"Кажется эту шутку вы уже слышали, сейчас подберем другую"))
+            responce = requests.get(f'https://some-random-api.ml/meme')
+            json_data = json.loads(responce.text)
+        else:
+            joke_id = jokes.get(author.id)
+            joke_id.append(json_data['joke'])
+            jokes[author.id] = joke_id
+        result = translator.translate(json_data['joke'], dest='ru', src='en')
+        embed_ru = discord.Embed(color=0xff9900, title=result.text)
+        embed_en = discord.Embed(color=0xff9900, title=json_data['joke'])
+        await ctx.send(embed=embed_en)
+        await ctx.send(embed=embed_ru)
+    except Exception:
+        await ctx.send(embed=discord.Embed(color=0xFF2B2B, title="Произошла непредвиденная ошибка"))
 
 
 @bot.command()
