@@ -6,16 +6,21 @@ import json
 from googletrans import Translator
 import emoji
 
+
 translator = Translator()
-bot = commands.Bot(command_prefix=settings['prefix'], help_command=None)
+bot = commands.Bot(command_prefix=settings['prefix'], help_command=None, intents=discord.Intents.all())
 
 last_help_message_id = None
 lasT_channel_if = None
 
 
-@bot.command()
-async def last(ctx):
-    print(last_help_message_id)
+def convert_id(id):
+    return int(''.join([number for number in id if number.isdigit()]))
+
+
+def check_members(member):
+    with open("Moders.txt") as moders:
+        print(moders)
 
 
 @bot.command()
@@ -29,20 +34,75 @@ async def help(ctx):
                 f'  {emoji.emojize(t)}  joke - шутка']
     embed = discord.Embed(color=0xff9900, title=f'Действия')
     embed.add_field(name='<<commands>>', value='\n'.join(commands), inline=True)
-    print(last_channel_id)
+    print(check_members(123))
+
+
+@bot.command()
+async def addrole(ctx, member, role):
+    member = discord.utils.get(ctx.guild.members, id=convert_id(member))
+    role = discord.utils.get(ctx.guild.roles, id=convert_id(role))
+    await member.add_roles(role)
+
+
+@bot.command()
+async def delrole(ctx, member, role):
+    member = discord.utils.get(ctx.guild.members, id=convert_id(member))
+    role = discord.utils.get(ctx.guild.roles, id=convert_id(role))
+    await member.remove_roles(role)
+
+
+@bot.command()
+async def ban(ctx, member, reason='None'):
+    member = discord.utils.get(ctx.guild.members, id=convert_id(member))
+    await member.ban(reason=reason)
+    embed = discord.Embed(color=0xFF0000,
+                          title=f'Пользователь {str(member).split("#")[0]} был забанен по причине {reason}!')
+    await ctx.send(embed=embed)
+
+
+@bot.command()
+async def unban(ctx, member):
+    banned_users = await ctx.guild.bans()
+    for ban_entry in banned_users:
+        user = ban_entry.user
+        await ctx.guild.unban(user)
+
+    embed = discord.Embed(color=0x00FF00,
+                          title=f'Пользователь {str(user).split("#")[0]} был разбанен!')
+    await ctx.send(embed=embed)
+
+
+@bot.command()
+async def kick(ctx, member, reason='None'):
+    member = discord.utils.get(ctx.guild.members, id=convert_id(member))
+    print(member)
+    await member.kick(reason=reason)
+    embed = discord.Embed(color=0x00FF00,
+                         title=f'Пользователь {str(member).split("#")[0]} был исключен с сервера по причине {reason}!')
+    await ctx.send(embed=embed)
 
 
 @bot.command()
 async def hello(ctx):
     global last_help_message_id, last_channel_id, last_author
     last_author = ctx.message.author
+    author = ctx.message.author
     guild = bot.get_guild(922501298111250493)
     people_role = guild.get_role(963432221421764618)
-    embed = discord.Embed(color=0xFF3300, title=f'-------Приветствуем вас на сервере-------\n'
-                                                f'Пожалуйста подтвердите свою личность.\n'
-                                                f'\n'
-                                                f'{bot.get_emoji(964198996295942144)} - согласен\n'
-                                                f'{bot.get_emoji(964198996291751986)} - отказываюсь')
+    meh_role = guild.get_role(964515540456575037)
+    if people_role in author.roles or meh_role in author.roles:
+        embed = discord.Embed(color=0x7FFFD4, title='.....Мы ждали вас!.....     \n'
+                                                    'Добро пожаловать домой!')
+        responce = requests.get(f'https://some-random-api.ml/animu/wink')
+        json_data = json.loads(responce.text)
+        embed.set_image(url=json_data['link'])
+    else:
+        embed = discord.Embed(color=0xFF3300, title=f'-------Приветствуем вас на сервере-------\n'
+                                                    f'Пожалуйста подтвердите свою личность.\n'
+                                                    f'\n'
+                                                    f'{bot.get_emoji(964198996295942144)} - Я человек\n'
+                                                    f'{bot.get_emoji(964198996291751986)} - Я машина')
+        embed.set_image(url='https://c.tenor.com/WeazEANUhvMAAAAC/stop-funny-animal.gif')
     message_id = await ctx.send(embed=embed)
     last_help_message_id = message_id.id
     last_channel_id = message_id.channel.id
@@ -57,6 +117,7 @@ async def on_raw_reaction_add(payload):
     meh_role = guild.get_role(964515540456575037)
     if message_id == last_help_message_id:
         if payload.emoji.name == 'ALTCHECK':
+            print(last_author)
             await last_author.add_roles(people_role)
         elif payload.emoji.name == 'MinecraftNo':
             await last_author.add_roles(meh_role)
