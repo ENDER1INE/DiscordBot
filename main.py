@@ -3,21 +3,49 @@ from discord.ext import commands
 from config import settings
 import requests
 import json
+from googletrans import Translator
+import emoji
 
 
+translator = Translator()
 bot = commands.Bot(command_prefix=settings['prefix'], help_command=None)
+users = {}
 
+
+def update(user_id, key_name, value):
+    if user_id in users:
+        data = users[user_id]
+        if key_name in data:
+            data[key_name].add(value)
+        else:
+            data[key_name] = {value}
+        users[user_id] = data
+    else:
+        users[user_id] = {}
+        users[user_id][key_name] = {value}
+    return users
 
 @bot.command()
 async def hello(ctx):
     author = ctx.message.author
     await ctx.send(f"Привет {author.mention}")
+    await help(ctx)
 
 
 @bot.command()
 async def weather(ctx, *city):
     try:
+        author = ctx.message.author
         city = ' '.join(city)
+        try:
+            if city in users.get(author.id).get('weather'):
+                await ctx.send(
+                    embed=discord.Embed(color=0xFF2B2B, title=f"Вы уже запрашивали погоду в этом городе"))
+            else:
+                update(author.id, 'weather', city)
+        except Exception:
+            update(author.id, 'weather', city)
+        print(users)
         key = "4404863c7b41019dcdccb79c8d750ac8"
         url = f"http://api.openweathermap.org/data/2.5/find?q={city}&type=like&APPID={key}"
         response = requests.get(url).json()["list"][0]
@@ -53,47 +81,129 @@ async def weather(ctx, *city):
             )
         await ctx.send(embed=embed)
     except Exception:
-        await ctx.send(embed=discord.Embed(color=0xFF2B2B, title="Произошла непредвиденная ошибка, возможного данного"
+        await ctx.send(embed=discord.Embed(color=0xFF2B2B, title="Произошла непредвиденная ошибка, возможно данного"
                                                                  " города не существует)"))
 
-@bot.command()
-async def animal_picture(ctx, animal):
-    responce = requests.get(f'https://some-random-api.ml/img/{animal}')
-    json_data = json.loads(responce.text)
-    embed = discord.Embed(color=0xff9900)
-    embed.set_image(url=json_data['link'])
-    await ctx.send(embed=embed)
-
 
 @bot.command()
-async def animal_fact(ctx, animal):
-    responce = requests.get(f'https://some-random-api.ml/facts/{animal}')
-    json_data = json.loads(responce.text)
-    responce_2 = requests.get(f'https://some-random-api.ml/animal/{animal}')
-    json_data_2 = json.loads(responce_2.text)
-    embed = discord.Embed(color=0xff9900, title=json_data['fact'])
-    embed.set_image(url=json_data_2['image'])
-    await ctx.send(embed=embed)
+async def pic(ctx, animal):
+    try:
+        author = ctx.message.author
+        responce = requests.get(f'https://some-random-api.ml/img/{animal}')
+        json_data = json.loads(responce.text)
+        try:
+            if json_data['link'] in users.get(author.id).get('pictures'):
+                await ctx.send(embed=discord.Embed(color=0xFF2B2B, title=f"Кажется, это фото вы уже видели, сейчас подберем другое"))
+                responce = requests.get(f'https://some-random-api.ml/img/{animal}')
+                json_data = json.loads(responce.text)
+            else:
+                update(author.id, 'pictures', json_data['link'])
+        except Exception:
+            update(author.id, 'pictures', json_data['link'])
+        embed = discord.Embed(color=0xff9900)
+        embed.set_image(url=json_data['link'])
+        await ctx.send(embed=embed)
+    except Exception:
+        await ctx.send(embed=discord.Embed(color=0xFF2B2B, title="Произошла непредвиденная ошибка, возможно данного"
+                                                                 " животного не существует)"))
 
+
+
+@bot.command()
+async def fact(ctx, animal):
+    try:
+        author = ctx.message.author
+        responce = requests.get(f'https://some-random-api.ml/animal/{animal}')
+        json_data = json.loads(responce.text)
+        try:
+            if json_data['fact'] in users.get(author.id).get('facts'):
+                await ctx.send(
+                    embed=discord.Embed(color=0xFF2B2B, title=f"Кажется этот факт вы уже слышали, сейчас подберем другой"))
+                responce = requests.get(f'https://some-random-api.ml/facts/{animal}')
+                json_data = json.loads(responce.text)
+        except Exception:
+            update(author.id, 'facts', json_data['fact'])
+        responce_2 = requests.get(f'https://some-random-api.ml/animal/{animal}')
+        json_data_2 = json.loads(responce_2.text)
+        try:
+            if json_data_2['image'] in users.get(author.id).get('pictures'):
+                await ctx.send(
+                    embed=discord.Embed(color=0xFF2B2B, title=f"Кажется это фото вы уже видели, сейчас подберем другое"))
+                responce_2 = requests.get(f'https://some-random-api.ml/animal/{animal}')
+                json_data_2 = json.loads(responce_2.text)
+            else:
+                update(author.id, 'pictures', json_data_2['image'])
+        except Exception:
+            update(author.id, 'pictures', json_data_2['image'])
+        result = translator.translate(json_data['fact'], dest='ru', src='en')
+        embed_ru = discord.Embed(color=0xff9900, title=result.text)
+        embed_en = discord.Embed(color=0xff9900, title=json_data['fact'])
+        embed_en.set_image(url=json_data_2['image'])
+        await ctx.send(embed=embed_en)
+        await ctx.send(embed=embed_ru)
+    except Exception:
+        await ctx.send(embed=discord.Embed(color=0xFF2B2B, title="Произошла непредвиденная ошибка, возможно данного"
+                                                                 " животного не существует)"))
 
 @bot.command()
 async def meme(ctx):
-    responce = requests.get('https://some-random-api.ml/meme')
-    json_data = json.loads(responce.text)
-    embed = discord.Embed(color=0xff9900)
-    embed.set_image(url=json_data['image'])
-    await ctx.send(embed=embed)
+    try:
+        author = ctx.message.author
+        responce = requests.get('https://some-random-api.ml/meme')
+        json_data = json.loads(responce.text)
+        try:
+            if json_data['image'] in users.get(author.id).get('memes'):
+                await ctx.send(
+                    embed=discord.Embed(color=0xFF2B2B, title=f"Кажется этот мем вы уже видели, сейчас подберем другой"))
+                responce = requests.get(f'https://some-random-api.ml/meme')
+                json_data = json.loads(responce.text)
+            else:
+                update(author.id, 'memes', json_data['image'])
+        except Exception:
+            update(author.id, 'memes', json_data['image'])
+        embed = discord.Embed(color=0xff9900)
+        embed.set_image(url=json_data['image'])
+        await ctx.send(embed=embed)
+    except Exception:
+        await ctx.send(embed=discord.Embed(color=0xFF2B2B, title="Произошла непредвиденная ошибка"))
 
 
 @bot.command()
 async def joke(ctx):
-    responce = requests.get('https://some-random-api.ml/joke')
-    json_data = json.loads(responce.text)
-    embed = discord.Embed(color=0xff9900, title=json_data['joke'])
+    try:
+        author = ctx.message.author
+        responce = requests.get('https://some-random-api.ml/joke')
+        json_data = json.loads(responce.text)
+        try:
+            if json_data['joke'] in users.get(author.id).get('jokes'):
+                await ctx.send(
+                    embed=discord.Embed(color=0xFF2B2B, title=f"Кажется эту шутку вы уже слышали, сейчас подберем другую"))
+                responce = requests.get(f'https://some-random-api.ml/meme')
+                json_data = json.loads(responce.text)
+            else:
+                update(author.id, 'jokes', json_data['joke'])
+        except Exception:
+            update(author.id, 'jokes', json_data['joke'])
+        result = translator.translate(json_data['joke'], dest='ru', src='en')
+        embed_ru = discord.Embed(color=0xff9900, title=result.text)
+        embed_en = discord.Embed(color=0xff9900, title=json_data['joke'])
+        await ctx.send(embed=embed_en)
+        await ctx.send(embed=embed_ru)
+    except Exception:
+        await ctx.send(embed=discord.Embed(color=0xFF2B2B, title="Произошла непредвиденная ошибка"))
+
+
+@bot.command()
+async def help(ctx):
+    t = ':hear-no-evil_monkey:'
+    commands = [f'Действия:',
+                f'  {emoji.emojize(t)}  weather город - вывод погоды в  определенном городе',
+                f'  {emoji.emojize(t)}  pic животное - фото животного',
+                f'  {emoji.emojize(t)}  fact животное - факт о животном',
+                f'  {emoji.emojize(t)}  meme - мем',
+                f'  {emoji.emojize(t)}  joke - шутка']
+    embed = discord.Embed(color=0xff9900, title=f'Действия')
+    embed.add_field(name='<<commands>>', value='\n'.join(commands), inline=True)
     await ctx.send(embed=embed)
 
-
-
-
 bot.run(settings['token'])
-
