@@ -18,11 +18,6 @@ def convert_id(id):
     return int(''.join([number for number in id if number.isdigit()]))
 
 
-def check_members(member):
-    with open("Moders.txt") as moders:
-        print(moders)
-
-
 @bot.command()
 async def help(ctx):
     t = '✅'
@@ -34,14 +29,39 @@ async def help(ctx):
                 f'  {emoji.emojize(t)}  joke - шутка']
     embed = discord.Embed(color=0xff9900, title=f'Действия')
     embed.add_field(name='<<commands>>', value='\n'.join(commands), inline=True)
-    print(check_members(123))
 
 
 @bot.command()
-async def addrole(ctx, member, role):
-    member = discord.utils.get(ctx.guild.members, id=convert_id(member))
-    role = discord.utils.get(ctx.guild.roles, id=convert_id(role))
-    await member.add_roles(role)
+async def addadmin(ctx, member):
+    member = str(convert_id(member))
+    read_admin_list = open('Admins.txt').read()
+    print(discord.utils.get(ctx.guild.members, id=convert_id(member)))
+    with open("Admins.txt", 'a') as admin_list:
+        if member not in read_admin_list:
+            if not discord.utils.get(ctx.guild.members, id=convert_id(member)) == None:
+                admin_list.write(f'{member}\n')
+                member = discord.utils.get(ctx.guild.members, id=convert_id(member))
+                succes = f'Пользователь {member} назначен как администратор!'
+            else:
+                succes = 'Проверьте првильность введенных данных, найти пользователя не удалось!'
+        else:
+            succes = f'Что то пошло не так, возможно данный пользователь уже администратор.'
+    embed = discord.Embed(color=0xFF1870, title=succes)
+    await ctx.send(embed=embed)
+
+
+@bot.command()
+async def addrole(ctx, member=None, role=None):
+    try:
+        author = ctx.message.author
+        print(author.id)
+        member = discord.utils.get(ctx.guild.members, id=convert_id(member))
+        role = discord.utils.get(ctx.guild.roles, id=convert_id(role))
+        await member.add_roles(role)
+        await ctx.send(embed=discord.Embed(color=0xFFCC00, title=f'{bot.get_emoji(964198996295942144)} Пользователю '
+                                                                 f'{member} выдана роль {role}!'))
+    except Exception:
+        await ctx.send(embed=discord.Embed(color=0xFF2918, title=f'[ERROR] Вероятно вы где то допустили ошибку!!!'))
 
 
 @bot.command()
@@ -61,7 +81,7 @@ async def ban(ctx, member, reason='None'):
 
 
 @bot.command()
-async def unban(ctx, member):
+async def unban(ctx):
     banned_users = await ctx.guild.bans()
     for ban_entry in banned_users:
         user = ban_entry.user
@@ -126,6 +146,7 @@ async def on_raw_reaction_add(payload):
 @bot.event 
 async def on_raw_reaction_remove(payload):
     print("reaction_removed")
+
 
 @bot.command()
 async def weather(ctx, *city):
