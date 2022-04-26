@@ -1,3 +1,4 @@
+import random
 import discord
 from discord.ext import commands
 from config import settings
@@ -5,6 +6,8 @@ import requests
 import json
 from googletrans import Translator
 import emoji
+from newsapi import NewsApiClient
+import requests
 
 
 translator = Translator()
@@ -24,6 +27,9 @@ def update(user_id, key_name, value):
         users[user_id] = {}
         users[user_id][key_name] = {value}
     return users
+
+
+
 
 @bot.command()
 async def hello(ctx):
@@ -194,6 +200,45 @@ async def joke(ctx):
 
 
 @bot.command()
+async def news(ctx, country):
+    try:
+        author = ctx.message.author
+        url = (f'https://newsapi.org/v2/top-headlines?'
+               f'country={country}&'
+               f'apiKey=973085d982b24f93a43101b3fba958bd')
+        responce = requests.get(url)
+        json_data = json.loads(responce.text)
+        number = random.randint(0, len(json_data['articles']) - 1)
+        try:
+            if json_data['articles'][number]['title'] in users.get(author.id).get('news'):
+                await ctx.send(
+                    embed=discord.Embed(color=0xFF2B2B, title=f"Кажется эту новость вы уже слышали, сейчас подберем другую"))
+                if len(users.get(author.id).get('news')) == len(json_data['articles']):
+                    raise MemoryError(
+                        await ctx.send(
+                            embed=discord.Embed(color=0xFF2B2B,
+                                                title=f"Кажется новости на сегодня закончились")))
+                else:
+                    while json_data['articles'][number]['title'] in users.get(author.id).get('news'):
+                        number = random.randint(0, len(json_data['articles']) - 1)
+            else:
+                update(author.id, 'news', json_data['articles'][number]['title'])
+        except Exception:
+            update(author.id, 'news', json_data['articles'][number]['title'])
+        embed_2 = discord.Embed(color=0xff9900, title=json_data['articles'][number]['title'])
+        embed_3 = discord.Embed(color=0xff9900, title=json_data['articles'][number]['url'])
+        embed = discord.Embed(color=0xff9900)
+        embed_2.add_field(name='<<news>>', value=json_data['articles'][number]['description'], inline=True)
+        embed.set_image(url=json_data['articles'][number]['urlToImage'])
+        if json_data['articles'][number]['urlToImage']:
+                await ctx.send(embed=embed)
+        await ctx.send(embed=embed_2)
+        await ctx.send(embed=embed_3)
+    except Exception:
+        await ctx.send(embed=discord.Embed(color=0xFF2B2B, title="Произошла непредвиденная ошибка, возможно сайт был удален"))
+
+
+@bot.command()
 async def help(ctx):
     t = ':hear-no-evil_monkey:'
     commands = [f'Действия:',
@@ -201,7 +246,8 @@ async def help(ctx):
                 f'  {emoji.emojize(t)}  pic животное - фото животного',
                 f'  {emoji.emojize(t)}  fact животное - факт о животном',
                 f'  {emoji.emojize(t)}  meme - мем',
-                f'  {emoji.emojize(t)}  joke - шутка']
+                f'  {emoji.emojize(t)}  joke - шутка',
+                f'  {emoji.emojize(t)}  news страна - новости']
     embed = discord.Embed(color=0xff9900, title=f'Действия')
     embed.add_field(name='<<commands>>', value='\n'.join(commands), inline=True)
     await ctx.send(embed=embed)
