@@ -33,73 +33,115 @@ async def help(ctx):
 
 @bot.command()
 async def addadmin(ctx, member):
-    member = str(convert_id(member))
-    read_admin_list = open('Admins.txt').read()
-    print(discord.utils.get(ctx.guild.members, id=convert_id(member)))
-    with open("Admins.txt", 'a') as admin_list:
-        if member not in read_admin_list:
-            if not discord.utils.get(ctx.guild.members, id=convert_id(member)) == None:
-                admin_list.write(f'{member}\n')
-                member = discord.utils.get(ctx.guild.members, id=convert_id(member))
-                succes = f'Пользователь {member} назначен как администратор!'
-            else:
-                succes = 'Проверьте првильность введенных данных, найти пользователя не удалось!'
+    try:
+        admin_list = [str(discord.utils.get(ctx.guild.members, id=convert_id(user)))
+                      for user in (open("Admins.txt").read()).split('\n') if user]
+        if str(ctx.message.author) in admin_list:
+            member = str(convert_id(member))
+            read_admin_list = open('Admins.txt').read()
+            with open("Admins.txt", 'a') as admin_list:
+                if member not in read_admin_list:
+                    if not discord.utils.get(ctx.guild.members, id=convert_id(member)) == None:
+                        admin_list.write(f'{member}\n')
+                        member = discord.utils.get(ctx.guild.members, id=convert_id(member))
+                        succes = f'Пользователь {member} назначен как администратор!'
+                    else:
+                        succes = 'Проверьте првильность введенных данных, найти пользователя не удалось!'
+                else:
+                    succes = f'Что то пошло не так, возможно данный пользователь уже администратор.'
+            embed = discord.Embed(color=0xFF1870, title=succes)
+            await ctx.send(embed=embed)
         else:
-            succes = f'Что то пошло не так, возможно данный пользователь уже администратор.'
-    embed = discord.Embed(color=0xFF1870, title=succes)
-    await ctx.send(embed=embed)
+            await ctx.send(
+                embed=discord.Embed(color=0xFF2918, title=f'{bot.get_emoji(964198996291751986)} Отказано в доступе, '
+                                                          f'возможно у вас недостаточно прав!!!'))
+    except Exception:
+        await ctx.send(embed=discord.Embed(color=0xFF2918, title=f'[ERROR] Вероятно вы где то допустили ошибку!!!'))
 
 
 @bot.command()
 async def addrole(ctx, member=None, role=None):
     try:
         author = ctx.message.author
-        print(author.id)
-        member = discord.utils.get(ctx.guild.members, id=convert_id(member))
-        role = discord.utils.get(ctx.guild.roles, id=convert_id(role))
-        await member.add_roles(role)
-        await ctx.send(embed=discord.Embed(color=0xFFCC00, title=f'{bot.get_emoji(964198996295942144)} Пользователю '
-                                                                 f'{member} выдана роль {role}!'))
+        admin_list = [str(discord.utils.get(ctx.guild.members, id=convert_id(user)))
+                      for user in (open("Admins.txt").read()).split('\n') if user]
+        if str(author) in admin_list:
+            member = discord.utils.get(ctx.guild.members, id=convert_id(member))
+            role = discord.utils.get(ctx.guild.roles, id=convert_id(role))
+            await member.add_roles(role)
+            await ctx.send(embed=discord.Embed(color=0xFFCC00, title=f'{bot.get_emoji(964198996295942144)} Пользователю '
+                                                                     f'{member} выдана роль {role}!'))
+        else:
+            await ctx.send(
+                embed=discord.Embed(color=0xFF2918, title=f'{bot.get_emoji(964198996291751986)} Отказано в доступе, '
+                                                          f'возможно у вас недостаточно прав!!!'))
     except Exception:
         await ctx.send(embed=discord.Embed(color=0xFF2918, title=f'[ERROR] Вероятно вы где то допустили ошибку!!!'))
 
 
 @bot.command()
 async def delrole(ctx, member, role):
-    member = discord.utils.get(ctx.guild.members, id=convert_id(member))
-    role = discord.utils.get(ctx.guild.roles, id=convert_id(role))
-    await member.remove_roles(role)
+    try:
+        author = ctx.message.author
+        admin_list = [str(discord.utils.get(ctx.guild.members, id=convert_id(user)))
+                      for user in (open("Admins.txt").read()).split('\n') if user]
+        if str(author) in admin_list:
+            member = discord.utils.get(ctx.guild.members, id=convert_id(member))
+            role = discord.utils.get(ctx.guild.roles, id=convert_id(role))
+            await member.remove_roles(role)
+            await ctx.send(
+                embed=discord.Embed(color=0xFFCC00, title=f'{bot.get_emoji(964198996295942144)} У пользователя '
+                                                          f'{member} забрана роль {role}!'))
+        else:
+            await ctx.send(embed=discord.Embed(color=0xFF2918, title=f'{bot.get_emoji(964198996291751986)} '
+                                                                     f'Отказано в доступе, возможно '
+                                                                     f'у вас недостаточно прав!!!'))
+    except Exception:
+        await ctx.send(embed=discord.Embed(color=0xFF2918, title=f'[ERROR] Вероятно вы где то допустили ошибку!!!'))
 
 
 @bot.command()
 async def ban(ctx, member, reason='None'):
-    member = discord.utils.get(ctx.guild.members, id=convert_id(member))
-    await member.ban(reason=reason)
-    embed = discord.Embed(color=0xFF0000,
-                          title=f'Пользователь {str(member).split("#")[0]} был забанен по причине {reason}!')
-    await ctx.send(embed=embed)
+    try:
+        author = ctx.message.author
+        admin_list = [str(discord.utils.get(ctx.guild.members, id=convert_id(user)))
+                      for user in (open("Admins.txt").read()).split('\n') if user]
+        if str(author) in admin_list:
+            member = discord.utils.get(ctx.guild.members, id=convert_id(member))
+            await member.ban(reason=reason)
+            embed = discord.Embed(color=0xFF0000,
+                                  title=f'Пользователь {str(member).split("#")[0]} был забанен по причине {reason}!')
+            await ctx.send(embed=embed)
+    except Exception:
+        await ctx.send(embed=discord.Embed(color=0xFF2918, title=f'[ERROR] Вероятно вы где то допустили ошибку!!!'))
 
 
 @bot.command()
 async def unban(ctx):
-    banned_users = await ctx.guild.bans()
-    for ban_entry in banned_users:
-        user = ban_entry.user
-        await ctx.guild.unban(user)
+    try:
+        banned_users = await ctx.guild.bans()
+        for ban_entry in banned_users:
+            user = ban_entry.user
+            await ctx.guild.unban(user)
 
-    embed = discord.Embed(color=0x00FF00,
-                          title=f'Пользователь {str(user).split("#")[0]} был разбанен!')
-    await ctx.send(embed=embed)
+        embed = discord.Embed(color=0x00FF00,
+                              title=f'Пользователь {str(user).split("#")[0]} был разбанен!')
+        await ctx.send(embed=embed)
+    except Exception:
+        await ctx.send(embed=discord.Embed(color=0xFF2918, title=f'[ERROR] Вероятно вы где то допустили ошибку!!!'))
 
 
 @bot.command()
 async def kick(ctx, member, reason='None'):
-    member = discord.utils.get(ctx.guild.members, id=convert_id(member))
-    print(member)
-    await member.kick(reason=reason)
-    embed = discord.Embed(color=0x00FF00,
-                         title=f'Пользователь {str(member).split("#")[0]} был исключен с сервера по причине {reason}!')
-    await ctx.send(embed=embed)
+    try:
+        member = discord.utils.get(ctx.guild.members, id=convert_id(member))
+        await member.kick(reason=reason)
+        embed = discord.Embed(color=0x00FF00,
+                             title=f'Пользователь {str(member).split("#")[0]} был исключен с'
+                                   f' сервера по причине {reason}!')
+        await ctx.send(embed=embed)
+    except Exception:
+        await ctx.send(embed=discord.Embed(color=0xFF2918, title=f'[ERROR] Вероятно вы где то допустили ошибку!!!'))
 
 
 @bot.command()
