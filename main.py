@@ -200,11 +200,11 @@ async def joke(ctx):
 
 
 @bot.command()
-async def news(ctx, country):
+async def news(ctx):
     try:
         author = ctx.message.author
         url = (f'https://newsapi.org/v2/top-headlines?'
-               f'country={country}&'
+               f'country=ru&'
                f'apiKey=973085d982b24f93a43101b3fba958bd')
         responce = requests.get(url)
         json_data = json.loads(responce.text)
@@ -247,7 +247,7 @@ async def help(ctx):
                 f'  {emoji.emojize(t)}  fact животное - факт о животном',
                 f'  {emoji.emojize(t)}  meme - мем',
                 f'  {emoji.emojize(t)}  joke - шутка',
-                f'  {emoji.emojize(t)}  news страна - новости']
+                f'  {emoji.emojize(t)}  news - новости']
     embed = discord.Embed(color=0xff9900, title=f'Действия')
     embed.add_field(name='<<commands>>', value='\n'.join(commands), inline=True)
     await ctx.send(embed=embed)
