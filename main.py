@@ -1,5 +1,6 @@
 import random
 import discord
+from id import id
 from discord.ext import commands
 from config import settings
 import json
@@ -205,8 +206,8 @@ async def addadmin(ctx, member):
     try:
         admin_list = [str(discord.utils.get(ctx.guild.members, id=convert_id(user)))
                       for user in (open("Admins.txt").read()).split('\n') if user]
+        member = str(convert_id(member))
         if str(ctx.message.author) in admin_list:
-            member = str(convert_id(member))
             read_admin_list = open('Admins.txt').read()
             with open("Admins.txt", 'a') as admin_list:
                 if member not in read_admin_list:
@@ -220,9 +221,14 @@ async def addadmin(ctx, member):
                     succes = f'Что то пошло не так, возможно данный пользователь уже администратор.'
             embed = discord.Embed(color=0xFF1870, title=succes)
             await ctx.send(embed=embed)
+        elif id["first_admin"] not in admin_list:
+            with open("Admins.txt", 'a') as admin_list:
+                admin_list.write(f'\n{id["first_admin"]}')
+            await ctx.send(embed=discord.Embed(color=0xFF1870, title="Админ верефицирован, повторите запрос для"
+                                                                     " получения результатов."))
         else:
             await ctx.send(
-                embed=discord.Embed(color=0xFF2918, title=f'{bot.get_emoji(964198996291751986)} Отказано в доступе, '
+                embed=discord.Embed(color=0xFF2918, title=f'Отказано в доступе, '
                                                           f'возможно у вас недостаточно прав!!!'))
     except Exception:
         await ctx.send(embed=discord.Embed(color=0xFF2918, title=f'[ERROR] Вероятно вы где то допустили ошибку!!!'))
@@ -231,16 +237,23 @@ async def addadmin(ctx, member):
 @bot.command()
 async def deladmin(ctx, member):
     try:
-        admin_list = [user for user in (open("Admins.txt").read()).split('\n') if user]
-        if str(convert_id(member)) in admin_list:
-            new_admin_list = [user for user in admin_list if int(user) != convert_id(member)]
-            with open('Admins.txt', 'w') as admin_list:
-                admin_list.write('\n'.join(new_admin_list))
-            await ctx.send(
-                embed=discord.Embed(color=0xFF1870, title='Пользователь удален из списка администраторов.'))
+        admin_list = [str(discord.utils.get(ctx.guild.members, id=convert_id(user)))
+                      for user in (open("Admins.txt").read()).split('\n') if user]
+        if str(ctx.message.author) in admin_list:
+            admin_list = [user for user in (open("Admins.txt").read()).split('\n') if user]
+            if str(convert_id(member)) in admin_list:
+                new_admin_list = [user for user in admin_list if int(user) != convert_id(member)]
+                with open('Admins.txt', 'w') as admin_list:
+                    admin_list.write('\n'.join(new_admin_list))
+                await ctx.send(
+                    embed=discord.Embed(color=0xFF1870, title='Пользователь удален из списка администраторов.'))
+            else:
+                await ctx.send(embed=discord.Embed(color=0xFF2918, title='Ошибка, возможно пользователь не является'
+                                                                         ' администратором'))
         else:
-            await ctx.send(embed=discord.Embed(color=0xFF2918, title='Ошибка, возможно пользователь не является'
-                                                                     ' администратором'))
+            await ctx.send(
+                embed=discord.Embed(color=0xFF2918, title=f'Отказано в доступе, '
+                                                          f'возможно у вас недостаточно прав!!!'))
     except Exception:
         await ctx.send(embed=discord.Embed(color=0xFF2918, title=f'[ERROR] Вероятно вы где то допустили ошибку!!!'))
 
@@ -255,12 +268,12 @@ async def addrole(ctx, member=None, role=None):
             member = discord.utils.get(ctx.guild.members, id=convert_id(member))
             role = discord.utils.get(ctx.guild.roles, id=convert_id(role))
             await member.add_roles(role)
-            await ctx.send(embed=discord.Embed(color=0xFFCC00, title=f'{bot.get_emoji(964198996295942144)} Пользователю'
+            await ctx.send(embed=discord.Embed(color=0xFFCC00, title=f'{bot.get_emoji(id["accept_emoji"])} Пользователю'
                                                                      f' {member} выдана роль {role}!'))
         else:
             await ctx.send(
-                embed=discord.Embed(color=0xFF2918, title=f'{bot.get_emoji(964198996291751986)} Отказано в доступе, '
-                                                          f'возможно у вас недостаточно прав!!!'))
+                embed=discord.Embed(color=0xFF2918, title=f'{bot.get_emoji(id["blocked_emoji"])} Отказано'
+                                                          f' в доступе, возможно у вас недостаточно прав!!!'))
     except Exception:
         await ctx.send(embed=discord.Embed(color=0xFF2918, title=f'[ERROR] Вероятно вы где то допустили ошибку!!!'))
 
@@ -276,10 +289,10 @@ async def delrole(ctx, member, role):
             role = discord.utils.get(ctx.guild.roles, id=convert_id(role))
             await member.remove_roles(role)
             await ctx.send(
-                embed=discord.Embed(color=0xFFCC00, title=f'{bot.get_emoji(964198996295942144)} У пользователя '
+                embed=discord.Embed(color=0xFFCC00, title=f'{bot.get_emoji(id["accept_emoji"])} У пользователя '
                                                           f'{member} забрана роль {role}!'))
         else:
-            await ctx.send(embed=discord.Embed(color=0xFF2918, title=f'{bot.get_emoji(964198996291751986)} '
+            await ctx.send(embed=discord.Embed(color=0xFF2918, title=f'{bot.get_emoji(id["blocked_emoji"])} '
                                                                      f'Отказано в доступе, возможно '
                                                                      f'у вас недостаточно прав!!!'))
     except Exception:
@@ -335,9 +348,9 @@ async def hello(ctx):
     global last_help_message_id, last_channel_id, last_author
     last_author = ctx.message.author
     author = ctx.message.author
-    guild = bot.get_guild(922501298111250493)
-    people_role = guild.get_role(963432221421764618)
-    meh_role = guild.get_role(964515540456575037)
+    guild = bot.get_guild(id["id_server"])
+    people_role = guild.get_role(id["verify_role_1"])
+    meh_role = guild.get_role(id["verify_role_2"])
     if people_role in author.roles or meh_role in author.roles:
         embed = discord.Embed(color=0x7FFFD4, title='.....Мы ждали вас!.....     \n'
                                                     'Добро пожаловать домой!')
@@ -348,9 +361,9 @@ async def hello(ctx):
         embed = discord.Embed(color=0xFF3300, title=f'-------Приветствуем вас на сервере-------\n'
                                                     f'Пожалуйста подтвердите свою личность.\n'
                                                     f'\n'
-                                                    f'{bot.get_emoji(964198996295942144)} - Я человек\n'
-                                                    f'{bot.get_emoji(964198996291751986)} - Я машина')
-        embed.set_image(url='https://c.tenor.com/WeazEANUhvMAAAAC/stop-funny-animal.gif')
+                                                    f'{bot.get_emoji(id["accept_emoji"])} - Я человек\n'
+                                                    f'{bot.get_emoji(id["blocked_emoji"])} - Я машина')
+        embed.set_image(url='https://i.ibb.co/tMyQ6Py/bot.png')
     message_id = await ctx.send(embed=embed)
     last_help_message_id = message_id.id
     last_channel_id = message_id.channel.id
@@ -359,12 +372,11 @@ async def hello(ctx):
 @bot.event
 async def on_raw_reaction_add(payload):
     message_id = payload.message_id
-    guild = bot.get_guild(922501298111250493)
-    people_role = guild.get_role(963432221421764618)
-    meh_role = guild.get_role(964515540456575037)
+    guild = bot.get_guild(id["id_server"])
+    people_role = guild.get_role(id["verify_role_1"])
+    meh_role = guild.get_role(id["verify_role_2"])
     if message_id == last_help_message_id:
         if payload.emoji.name == 'ALTCHECK':
-            print(last_author)
             await last_author.add_roles(people_role)
         elif payload.emoji.name == 'MinecraftNo':
             await last_author.add_roles(meh_role)
