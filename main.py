@@ -376,9 +376,9 @@ async def on_raw_reaction_add(payload):
     people_role = guild.get_role(id["verify_role_1"])
     meh_role = guild.get_role(id["verify_role_2"])
     if message_id == last_help_message_id:
-        if payload.emoji.name == 'ALTCHECK':
+        if payload.emoji.id == id["accept_emoji"]:
             await last_author.add_roles(people_role)
-        elif payload.emoji.name == 'MinecraftNo':
+        elif payload.emoji.id == id["blocked_emoji"]:
             await last_author.add_roles(meh_role)
 
 
