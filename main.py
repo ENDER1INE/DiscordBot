@@ -38,7 +38,6 @@ def update(user_id, key_name, value):
 
 @bot.command()
 async def help(ctx):
-    file = discord.File("help_menu.jpg")
     embed = discord.Embed(color=0xe400ff)
     embed.set_image(url='https://i.ibb.co/k0FyzyS/help-2.jpg')
     await ctx.send(embed=embed)
